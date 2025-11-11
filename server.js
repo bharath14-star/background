@@ -36,8 +36,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/car_portal'
   console.error('MongoDB connection error:', err);
   process.exit(1);
 });
-// for rendering
-import path from "path";    
+// for rendering 
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
