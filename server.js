@@ -37,11 +37,6 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/car_portal'
   process.exit(1);
 });
 // for rendering 
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Serve frontend
 app.use(express.static(path.join(__dirname, "frontend", "build")));
 
