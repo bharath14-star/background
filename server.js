@@ -10,7 +10,7 @@ const carRoutes = require('./routes/carRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors("https://bharath14-star.github.io/car_inventory/"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
