@@ -13,6 +13,7 @@ const carSchema = new mongoose.Schema({
   personName: String,
   cellNo: String,
   price: Number,
+  referralId: { type: String, required: true, maxlength: 16 },
   photos: [String],
   video: String,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
@@ -24,6 +25,6 @@ carSchema.index({ personName: 1 });
 carSchema.index({ make: 1, model: 1 });
 carSchema.index({ inOutDateTime: 1 });
 // text index for generic search across several fields
-carSchema.index({ regNo: 'text', make: 'text', model: 'text', personName: 'text' });
+carSchema.index({ regNo: 'text', make: 'text', model: 'text', personName: 'text', referralId: 'text' });
 
 module.exports = mongoose.model('Car', carSchema);

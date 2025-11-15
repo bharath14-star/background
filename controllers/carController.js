@@ -28,6 +28,8 @@ exports.createCar = async (req, res) => {
     }
     // basic validation
     if (!data.regNo) return res.status(400).json({ message: 'regNo is required' });
+    if (!data.referralId) return res.status(400).json({ message: 'referralId is required' });
+    if (data.referralId.length > 16) return res.status(400).json({ message: 'Referral ID must be 16 characters or less' });
 
     const car = await Car.create(data);
     res.status(201).json(car);
@@ -57,8 +59,14 @@ exports.getAllCars = async (req, res) => {
     const filter = {};
 
     if (search) {
-      // use text search when available
-      filter.$text = { $search: search };
+      // search across multiple fields
+      filter.$or = [
+        { regNo: new RegExp(search, 'i') },
+        { personName: new RegExp(search, 'i') },
+        { make: new RegExp(search, 'i') },
+        { model: new RegExp(search, 'i') },
+        { referralId: new RegExp(search, 'i') }
+      ];
     }
     if (regNo) filter.regNo = new RegExp(regNo, 'i');
     if (personName) filter.personName = new RegExp(personName, 'i');
@@ -69,6 +77,18 @@ exports.getAllCars = async (req, res) => {
       filter.inOutDateTime = {};
       if (startDate) filter.inOutDateTime.$gte = new Date(startDate);
       if (endDate) filter.inOutDateTime.$lte = new Date(endDate);
+    }
+
+    // Filter for non-admin users: only show cars where referralId matches user's employeeId
+    if (req.user && req.user.role !== 'admin') {
+      const User = require('../models/User');
+      const user = await User.findById(req.user.id);
+      if (user && user.employeeId) {
+        filter.referralId = user.employeeId;
+      } else {
+        // If user has no employeeId, return empty results
+        return res.json({ total: 0, page: 1, limit: parseInt(limit), items: [] });
+      }
     }
 
     const pageNum = Math.max(1, parseInt(page));
@@ -151,20 +171,36 @@ exports.getStats = async (req, res) => {
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfToday.getDate() - day);
 
-    const total = await Car.countDocuments({});
-    const today = await Car.countDocuments({ inOutDateTime: { $gte: startOfToday } });
-    const thisWeek = await Car.countDocuments({ inOutDateTime: { $gte: startOfWeek } });
+    let filter = {};
 
-    const recent = await Car.find({}).sort({ inOutDateTime: -1 }).limit(10).lean();
+    // Filter for non-admin users: only show stats for cars where referralId matches user's employeeId
+    if (req.user && req.user.role !== 'admin') {
+      const User = require('../models/User');
+      const user = await User.findById(req.user.id);
+      if (user && user.employeeId) {
+        filter.referralId = user.employeeId;
+      } else {
+        // If user has no employeeId, return zero stats
+        return res.json({ total: 0, today: 0, thisWeek: 0, recent: [], topReg: [], topPersons: [], dailyCounts: [] });
+      }
+    }
+
+    const total = await Car.countDocuments(filter);
+    const today = await Car.countDocuments({ ...filter, inOutDateTime: { $gte: startOfToday } });
+    const thisWeek = await Car.countDocuments({ ...filter, inOutDateTime: { $gte: startOfWeek } });
+
+    const recent = await Car.find(filter).sort({ inOutDateTime: -1 }).limit(10).lean();
 
     // top regNos
     const topReg = await Car.aggregate([
+      { $match: filter },
       { $group: { _id: '$regNo', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
     ]);
 
     const topPersons = await Car.aggregate([
+      { $match: filter },
       { $group: { _id: '$personName', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
@@ -180,7 +216,7 @@ exports.getStats = async (req, res) => {
       d.setDate(start7.getDate() + i);
       const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      promises.push(Car.countDocuments({ inOutDateTime: { $gte: dayStart, $lt: dayEnd } }));
+      promises.push(Car.countDocuments({ ...filter, inOutDateTime: { $gte: dayStart, $lt: dayEnd } }));
       days.push(dayStart.toISOString().slice(0,10));
     }
     const counts = await Promise.all(promises);

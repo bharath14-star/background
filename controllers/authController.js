@@ -5,14 +5,15 @@ const { sendEmail } = require('../utils/email');
 
 exports.register = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, confirmPassword } = req.body;
-    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) return res.status(400).json({ message: 'All fields are required' });
+    const { firstName, lastName, email, phone, password, confirmPassword, employeeId } = req.body;
+    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword || !employeeId) return res.status(400).json({ message: 'All fields are required' });
     if (password !== confirmPassword) return res.status(400).json({ message: 'Passwords do not match' });
+    if (employeeId.length > 16) return res.status(400).json({ message: 'Employee ID must be 16 characters or less' });
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'Email already registered' });
     const hash = await bcrypt.hash(password, 10);
     const name = `${firstName} ${lastName}`;
-    const user = await User.create({ firstName, lastName, name, email, phone, password: hash });
+    const user = await User.create({ firstName, lastName, name, email, phone, password: hash, employeeId });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
     res.json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, token });
   } catch (err) {

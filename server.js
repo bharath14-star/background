@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
+const { MONGO_URI } = require('./controllers/config/Database');
+
 const authRoutes = require('./routes/authRoutes');
 const carRoutes = require('./routes/carRoutes');
 
@@ -17,23 +19,50 @@ app.use(express.urlencoded({ extended: true }));
 // static uploads
 app.use('/uploads', express.static(path.join(__dirname, process.env.UPLOAD_DIR || 'uploads')));
 
-app.use('/api/auth', authRoutes);
-app.use('/api', carRoutes);
-
 // basic error handler
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: 'Server error', error: err.message });
 });
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/car_portal', {
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
-  console.log('MongoDB connected');
+  console.log('MongoDB Atlas connected');
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch(err => {
-  console.error('MongoDB connection error:', err);
+  console.error('MongoDB Atlas connection error:', err);
   process.exit(1);
 });
-// for rendering 
+=======
+// basic error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Server error', error: err.message });
+});
+
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('MongoDB Atlas connected');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('MongoDB Atlas connection error:', err);
+  process.exit(1);
+});
+=======
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('MongoDB Atlas connected');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('MongoDB Atlas connection error:', err);
+  process.exit(1);
+});
+=======
+});  
+>>>>>>> a9e4472 (Updated backend code with latest changes)
